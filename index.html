@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>To Do</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:#f5f2ed;min-height:100vh;display:flex;flex-direction:column}
+input::placeholder{color:#c0b5a5}
+.header{background:#faf8f5;border-bottom:1px solid #e2d9cf;padding:28px 24px 18px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+.header-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
+.eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#a89880;margin-bottom:4px;font-weight:400}
+.title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:36px;line-height:1;color:#2a2520}
+.title em{font-style:italic;color:#7d6d5b}
+.date-box{text-align:right}
+.day-name{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#a89880;font-weight:300}
+.date-num{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:42px;color:#d9d0c5;line-height:1}
+.progress-row{display:flex;align-items:center;gap:12px}
+.progress-track{flex:1;height:2px;background:#e2dbd0;border-radius:1px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(to right,#8a7a68,#a89070);border-radius:1px;transition:width .5s ease;width:0%}
+.count{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:20px;color:#c0b5a5;white-space:nowrap}
+.count span{color:#8a7a68}
+.scroll{flex:1;overflow-y:auto;padding-bottom:100px}
+.section-lbl{padding:16px 20px 6px;font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#a89880}
+.task{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #ede8e0;background:#faf8f5;transition:background .15s}
+.task.done{background:#f0ebe3}
+.cb{flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1.5px solid #c0b3a2;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.cb.checked{background:#8a7a68;border-color:#8a7a68}
+.task-input{flex:1;border:none;background:transparent;outline:none;font-family:'DM Sans',sans-serif;font-weight:300;font-size:15px;color:#3d342b;letter-spacing:.01em}
+.task.done .task-input{text-decoration:line-through;color:#b5a898}
+.del{background:none;border:none;cursor:pointer;color:#c0b3a2;font-size:22px;padding:2px 6px;border-radius:4px;line-height:1}
+.empty{text-align:center;padding:60px 32px;color:#c0b5a5;display:none}
+.empty .icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.empty p{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:20px;font-style:italic;line-height:1.6}
+.add-bar{position:fixed;bottom:0;left:0;right:0;background:#faf8f5;border-top:1px solid #e2d9cf;padding:12px 16px 20px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 24px rgba(0,0,0,0.06)}
+.add-input{flex:1;background:#f0ece6;border:1px solid #e2d9cf;border-radius:24px;padding:12px 18px;font-family:'DM Sans',sans-serif;font-weight:300;font-size:15px;color:#3d342b;outline:none;transition:border-color .2s}
+.add-input:focus{border-color:#8a7a68}
+.add-btn{width:46px;height:46px;border-radius:50%;background:#8a7a68;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(138,122,104,.35);flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="eyebrow">My List</div>
+      <div class="title">To <em>do</em></div>
+    </div>
+    <div class="date-box">
+      <div class="day-name" id="day"></div>
+      <div class="date-num" id="datenum"></div>
+    </div>
+  </div>
+  <div class="progress-row">
+    <div class="progress-track"><div class="progress-fill" id="fill"></div></div>
+    <div class="count"><span id="doneN">0</span>/<span id="totalN">0</span></div>
+  </div>
+</div>
+
+<div class="scroll" id="scroll">
+  <div id="pending-lbl" class="section-lbl"></div>
+  <div id="pending-list"></div>
+  <div id="done-lbl" class="section-lbl"></div>
+  <div id="done-list"></div>
+  <div class="empty" id="empty">
+    <div class="icon">✓</div>
+    <p>Nothing here yet.<br/>Add a task below.</p>
+  </div>
+</div>
+
+<div class="add-bar">
+  <input class="add-input" id="add-input" placeholder="Add a task…" type="text"/>
+  <button class="add-btn" id="add-btn">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M10 4v12M4 10h12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const now=new Date();
+document.getElementById('day').textContent=DAYS[now.getDay()];
+document.getElementById('datenum').textContent=String(now.getDate()).padStart(2,'0');
+
+let tasks=[
+  {id:1,text:'Review morning emails',done:false},
+  {id:2,text:'Team standup',done:false},
+  {id:3,text:'Finish project proposal',done:false},
+];
+
+function nextId(){return tasks.length?Math.max(...tasks.map(t=>t.id))+1:1;}
+
+function makeTask(task){
+  const div=document.createElement('div');
+  div.className='task'+(task.done?' done':'');
+  const cb=document.createElement('div');
+  cb.className='cb'+(task.done?' checked':'');
+  cb.innerHTML=task.done?'<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':'';
+  cb.onclick=()=>{task.done=!task.done;render();};
+  const inp=document.createElement('input');
+  inp.className='task-input';
+  inp.type='text';
+  inp.value=task.text;
+  inp.oninput=()=>{task.text=inp.value;};
+  inp.onkeydown=e=>{if(e.key==='Enter')inp.blur();};
+  const del=document.createElement('button');
+  del.className='del';
+  del.textContent='×';
+  del.onclick=()=>{tasks=tasks.filter(t=>t.id!==task.id);render();};
+  div.appendChild(cb);div.appendChild(inp);div.appendChild(del);
+  return div;
+}
+
+function render(){
+  const pending=tasks.filter(t=>!t.done);
+  const done=tasks.filter(t=>t.done);
+  const pList=document.getElementById('pending-list');
+  const dList=document.getElementById('done-list');
+  pList.innerHTML='';dList.innerHTML='';
+  document.getElementById('empty').style.display=tasks.length?'none':'block';
+  document.getElementById('pending-lbl').textContent=pending.length?'To do':'';
+  document.getElementById('done-lbl').textContent=done.length?'Completed':'';
+  pending.forEach(t=>pList.appendChild(makeTask(t)));
+  done.forEach(t=>dList.appendChild(makeTask(t)));
+  const total=tasks.length,doneN=done.length;
+  document.getElementById('doneN').textContent=doneN;
+  document.getElementById('totalN').textContent=total;
+  document.getElementById('fill').style.width=total?(doneN/total*100)+'%':'0%';
+}
+
+function addTask(){
+  const inp=document.getElementById('add-input');
+  const val=inp.value.trim();
+  if(!val)return;
+  tasks.unshift({id:nextId(),text:val,done:false});
+  render();
+  inp.value='';
+  document.getElementById('scroll').scrollTo({top:0,behavior:'smooth'});
+}
+
+document.getElementById('add-btn').onclick=addTask;
+document.getElementById('add-input').onkeydown=e=>{if(e.key==='Enter'){addTask();e.target.blur();}};
+render();
+</script>
+</body>
+</html>
